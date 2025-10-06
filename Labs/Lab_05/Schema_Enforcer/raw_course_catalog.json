@@ -1,0 +1,46 @@
+[
+    {
+        "course_id": "DS2002",
+        "section": "001",
+        "title": "Data Science Systems",
+        "level": 200,
+        "instructors": [
+            {
+                "name": "Austin Rivera",
+                "role": "Primary"
+            },
+            {
+                "name": "Heywood Williams-Tracy",
+                "role": "TA"
+            }
+        ]
+    },
+    {
+        "course_id": "MDST4510",
+        "section": "005",
+        "title": "Global Environmental Media",
+        "level": 400,
+        "instructors": [
+            {
+                "name": "Aynne Kokas",
+                "role": "Primary"
+            }
+        ]
+    },
+    {
+        "course_id": "MDST3050",
+        "section": "001",
+        "title": "History of Media",
+        "level": 300,
+        "instructors": [
+            {
+                "name": "Kevin Driscoll",
+                "role": "Primary"
+            },
+            {
+                "name": "Weilin Zhu",
+                "role": "TA"
+            }
+        ]
+    }
+]

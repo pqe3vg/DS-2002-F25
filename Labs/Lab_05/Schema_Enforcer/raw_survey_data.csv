@@ -1,0 +1,6 @@
+student_id,major,GPA,is_cs_major,credits_taken
+5674,Biology,3.8,True,32.0
+9325,Economics,3,No,22.5
+1704,History,4,False,18.0
+8839,Data Science,3.6,Yes,28
+1260,Education,3.9,True,30
