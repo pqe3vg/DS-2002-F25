@@ -1,0 +1,5 @@
+Most Valuable Card:
+  Name: Charizard
+  ID: base1-4
+  Value: $459.20
+Test complete.

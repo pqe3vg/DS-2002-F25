@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+
+import os
+import json
+import pandas as pd
+
+
+all_lookup_df = []
+
+
+def load_lookup_dir(lookup_dir):
+
+	if not os.path.isdir(lookup_dir):
+		return
+
+	for fname in os.listdir(lookup_dir):
+		if not fname.lower().endswith('.json'):
+			continue
+
+		path = os.path.join(lookup_dir, fname)
+		if not os.path.isfile(path):
+			continue
+
+		try:
+			with open(path, 'r', encoding='utf-8') as fh:
+				data = json.load(fh)
+		except Exception:
+			# skip malformed json
+			continue
+
+		# Flatten the nested API 'data' list into a DataFrame
+		if isinstance(data, dict) and 'data' in data and isinstance(data['data'], list):
+			df = pd.json_normalize(data['data'])
+		elif isinstance(data, list):
+			df = pd.json_normalize(data)
+		else:
+			# nothing to normalize
+			continue
+
+		# Price calculation: prefer holofoil then normal, then 0.0
+		holo_col = 'tcgplayer.prices.holofoil.market'
+		normal_col = 'tcgplayer.prices.normal.market'
+
+		# initialize card_market_value to 0.0
+		df['card_market_value'] = 0.0
+
+		if holo_col in df.columns and normal_col in df.columns:
+			df['card_market_value'] = pd.to_numeric(df[holo_col], errors='coerce').fillna(pd.to_numeric(df[normal_col], errors='coerce')).fillna(0.0)
+		elif holo_col in df.columns:
+			df['card_market_value'] = pd.to_numeric(df[holo_col], errors='coerce').fillna(0.0)
+		elif normal_col in df.columns:
+			df['card_market_value'] = pd.to_numeric(df[normal_col], errors='coerce').fillna(0.0)
+
+		# Rename columns to standardized names
+		rename_map = {
+			'id': 'card_id',
+			'name': 'card_name',
+			'number': 'card_number',
+			'set.id': 'set_id',
+			'set.name': 'set_name',
+		}
+		df = df.rename(columns=rename_map)
+
+		# Define required columns for downstream processing
+		required_cols = ['card_id', 'card_name', 'card_number', 'set_id', 'set_name', 'card_market_value']
+
+		# Append a copy of this df 
+		all_lookup_df.append(df.copy())
+
+
+def finalize_lookup():
+	"""Concatenate all collected lookup DataFrames into a single lookup_df.
+
+	Returns
+	-------
+	lookup_df : pandas.DataFrame
+		Concatenated, normalized lookup DataFrame with at least the columns
+		defined in required_cols. Duplicates (by card_id) are dropped,
+		keeping the first occurrence.
+	"""
+
+	if not all_lookup_df:
+		return pd.DataFrame()
+
+	# Concatenate and ignore index to form a single lookup DataFrame
+	lookup_df = pd.concat(all_lookup_df, ignore_index=True)
+
+	# Ensure required columns exist
+	required_cols = ['card_id', 'card_name', 'card_number', 'set_id', 'set_name', 'card_market_value']
+	for col in required_cols:
+		if col not in lookup_df.columns:
+			lookup_df[col] = None
+
+	# Clean types: card_number and set_id as strings; card_market_value as numeric
+	lookup_df['card_number'] = lookup_df['card_number'].astype(str).str.strip()
+	lookup_df['set_id'] = lookup_df['set_id'].astype(str).str.strip()
+	lookup_df['card_market_value'] = pd.to_numeric(lookup_df['card_market_value'], errors='coerce').fillna(0.0)
+
+	# Sort by market value (descending) so we keep the highest-value record for each card_id
+	if 'card_market_value' in lookup_df.columns:
+		lookup_df = lookup_df.sort_values(by='card_market_value', ascending=False)
+
+	# Drop duplicate card_id entries, keeping the first (highest-value after sort)
+	if 'card_id' in lookup_df.columns:
+		lookup_df = lookup_df.drop_duplicates(subset=['card_id'], keep='first').reset_index(drop=True)
+
+	return lookup_df
