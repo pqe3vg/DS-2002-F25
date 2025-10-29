@@ -1,18 +1,18 @@
-#!/bin/bash
-echo "Refreshing all card sets in card_set_lookup/"
-for FILE in card_set_lookup/*.json; do
-    if [ ! -e "$FILE" ]; then
-        echo "No JSON files found in card_set_lookup/."
-        exit 0
-    fi
+# !/user/bin/env bash
 
+echo "Refreshing all card sets in card_set_lookup/..."
+
+#Loop through all .json files in the lookup directory 
+for FILE in card_set_lookup/*.json; do
+    #Extract the SET_ID from teh filename 
     SET_ID=$(basename "$FILE" .json)
 
-    echo "Updating card set: $SET_ID..."
+    echo "Updating set: $SET_ID"
 
-    curl -s "https://api.pokemontcg.io/v2/cards?q=set.id:${SET_ID}" -o "$FILE"
+    #API call to get all cards for the set
+    curl -s "https://api.pokemontcg.io/v2/cards?q=set.id:$SET_ID&page=1&pageSize=250" > "$FILE"
 
-    echo "Data for $SET_ID has been written to $FILE."
+    echo "Data written to "$FILE"
 done
 
-echo "All card sets have been refreshed successfully!"
+echo "All card sets refreshed."
